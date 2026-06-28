@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">牛马助手 v1.0</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<script src="i18n/messages.js?v=0.8.2"></script>
+<script src="i18n/i18n-engine.js?v=0.8.2"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="dns-prefetch" href="https://fonts.gstatic.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="css/variables.css?v=0.8.2">
+<link rel="stylesheet" href="css/app.css?v=0.8.2">
+<link rel="stylesheet" href="css/chat.css?v=0.8.2">
+</head>
+<body>
+<div id="bg-layer"></div>
+
+<!-- 登录遮罩 -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="logo-wrap"><img src="logo.jpg" alt="" id="logo-img"></div>
+    <h1 id="login-title" data-i18n="login.title">牛马助手</h1>
+    <p class="subtitle" id="login-subtitle"></p>
+
+    <!-- 登录/注册 tab 切换（forgot 视图时隐藏） -->
+    <div class="login-tabs" id="login-tabs-bar">
+      <button class="login-tab active" id="tab-login" onclick="App.switchAuthTab('login')" data-i18n="login.login">登录</button>
+      <button class="login-tab" id="tab-register" onclick="App.switchAuthTab('register')" data-i18n="login.register">注册</button>
+    </div>
+
+    <!-- ===== 登录视图 ===== -->
+    <div id="login-form-view">
+      <div class="input-icon">
+        <span class="material-icons">person</span>
+        <input type="text" id="login-username" data-i18n-placeholder="login.username" placeholder="用户名" maxlength="32">
+      </div>
+      <div class="input-icon">
+        <span class="material-icons">lock</span>
+        <input type="password" id="login-password" data-i18n-placeholder="login.password" placeholder="密码" maxlength="64">
+      </div>
+      <button class="btn" onclick="App.login()" id="login-submit-btn" data-i18n="login.submitLogin">登 录</button>
+      <p class="error" id="login-error"></p>
+      <p class="hint" style="cursor:pointer" onclick="App.showForgotPassword()" data-i18n="login.forgotPassword">忘记密码？</p>
+    </div>
+
+    <!-- ===== 注册视图 ===== -->
+    <div id="register-form-view" style="display:none">
+      <div class="input-icon">
+        <span class="material-icons">person</span>
+        <input type="text" id="reg-username" data-i18n-placeholder="login.username" placeholder="用户名" maxlength="32">
+      </div>
+      <div class="input-icon">
+        <span class="material-icons">lock</span>
+        <input type="password" id="reg-password" data-i18n-placeholder="login.password" placeholder="密码" maxlength="64">
+      </div>
+      <div class="input-icon">
+        <span class="material-icons">lock</span>
+        <input type="password" id="reg-confirm-pw" data-i18n-placeholder="login.confirmPassword" placeholder="确认密码" maxlength="64">
+      </div>
+      <p class="error" id="reg-pw-hint" style="text-align:left;padding-left:8px"></p>
+      <button class="btn" onclick="App.register()" id="reg-submit-btn" data-i18n="login.register">注 册</button>
+      <p class="error" id="reg-error"></p>
+      <p class="hint" style="cursor:pointer" onclick="App.switchAuthTab('login')" data-i18n="login.backToLogin">← 返回登录</p>
+    </div>
+
+    <!-- ===== 忘记密码视图 ===== -->
+    <div id="forgot-view" style="display:none">
+      <p class="subtitle" id="forgot-step-label" style="margin-bottom:12px;color:rgba(255,255,255,0.6)"></p>
+      <p id="forgot-question-display" style="display:none;font-size:14px;color:rgba(255,255,255,0.8);margin-bottom:12px;background:rgba(255,255,255,0.06);padding:10px;border-radius:8px"></p>
+      <div class="input-icon">
+        <span class="material-icons" id="forgot-icon1">person</span>
+        <input type="text" id="forgot-input1" placeholder="" maxlength="200">
+      </div>
+      <div class="input-icon" id="forgot-input2-wrap" style="display:none">
+        <span class="material-icons">lock</span>
+        <input type="password" id="forgot-input2" placeholder="" maxlength="64">
+      </div>
+      <p class="error" id="forgot-pw-hint" style="display:none;text-align:left;padding-left:8px"></p>
+      <button class="btn" onclick="App.login()" id="forgot-submit-btn">继续</button>
+      <p class="error" id="forgot-error"></p>
+      <p class="hint" style="cursor:pointer" onclick="App._resetAuthView()" data-i18n="login.backToLogin">← 返回登录</p>
+    </div>
+  </div>
+</div>
+
+<!-- 设置面板 -->
+<div id="settings-overlay">
+  <div class="settings-panel">
+    <h2>
+      <span class="material-icons">settings</span> <span data-i18n="app.settings">设置</span>
+      <button class="close-btn material-icons" onclick="App.toggleSettings()">close</button>
+    </h2>
+    <div style="display:flex;gap:0;margin-bottom:20px;border-radius:8px;overflow:hidden;border:1px solid var(--color-border);flex-wrap:wrap">
+      <button class="settings-tab active" onclick="App.switchSettingsTab('api')" id="stab-api" data-i18n="settings.tab.basic">基础设置</button>
+      <button class="settings-tab" onclick="App.switchSettingsTab('account')" id="stab-account" data-i18n="settings.tab.account">账户管理</button>
+      <button class="settings-tab" onclick="App.switchSettingsTab('templates')" id="stab-templates" data-i18n="settings.tab.templates">模板库</button>
+      <button class="settings-tab" onclick="App.switchSettingsTab('kb')" id="stab-kb" data-i18n="settings.tab.kb">知识库</button>
+    </div>
+    <div id="settings-tab-api">
+    <label>DeepSeek API Key</label>
+    <input type="password" id="settings-apikey" placeholder="sk-..." onfocus="if(this.value==='••••••••')this.value=''" onblur="App._autoSaveApiKey()">
+    <label data-i18n="settings.model">模型选择</label>
+    <select id="settings-model" onchange="App._autoSaveModel()">
+      <option value="deepseek-v4-flash">deepseek-v4-flash（快速 · ¥0.14/1M输入）</option>
+      <option value="deepseek-v4-pro">deepseek-v4-pro（高性能 · ¥0.435/1M输入）</option>
+      <option value="deepseek-chat">deepseek-chat（旧版，2026年7月下线，建议迁移到 deepseek-v4-flash）</option>
+      <option value="deepseek-reasoner">deepseek-reasoner（旧版，2026年7月下线，建议迁移到 deepseek-v4-pro）</option>
+    </select>
+    <p class="model-note" data-i18n="settings.model.note">推荐 deepseek-v4-flash，速度快且性价比最高</p>
+    <label style="margin-top:12px"><span class="material-icons" style="font-size:16px;vertical-align:middle">translate</span> 语言 / Language</label>
+    <select id="settings-lang" onchange="App._setUILang(this.value)" style="width:100%;margin-top:6px">
+      <option value="zh-CN">🇨🇳 中文</option>
+      <option value="en-US">🇺🇸 English</option>
+    </select>
+    <p class="model-note" style="margin-bottom:12px" data-i18n="settings.lang.note">切换后立即生效，自动记住偏好</p>
+    <label data-i18n="settings.style">AI 文风</label>
+    <select id="settings-style" onchange="App._autoSaveStyle()">
+      <option value="natural">自然口语（像给同事发消息）</option>
+      <option value="standard" selected>标准职场（均衡）</option>
+      <option value="formal">正式公文体（严谨但非模板化）</option>
+    </select>
+    <p class="model-note" data-i18n="settings.style.note">影响输出语气和句式变化程度，不影响安全和内容正确性</p>
+    <label><span class="material-icons" style="font-size:16px;vertical-align:middle">notifications</span> <span data-i18n="settings.reminder">待办提醒</span></label>
+    <select id="settings-reminder" onchange="App._autoSaveReminder()">
+      <option value="5">提前 5 分钟</option>
+      <option value="10" selected>提前 10 分钟</option>
+      <option value="15">提前 15 分钟</option>
+      <option value="30">提前 30 分钟</option>
+      <option value="60">提前 1 小时</option>
+      <option value="0">当天提醒</option>
+    </select>
+    <p class="model-note" data-i18n="settings.reminder.note">有截止时间的待办到期时，打开页面会自动弹出浏览器通知</p>
+    <label><span class="material-icons" style="font-size:16px;vertical-align:middle">sports_bar</span> <span data-i18n="settings.tavern">牛马酒馆</span></label>
+    <label class="toggle-label" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px"><span data-i18n="settings.tavern.enable">启用自动播报</span><span class="toggle-switch"><input type="checkbox" id="settings-tavern" onchange="App._saveTavernSetting()"><span class="toggle-slider"></span></span></label>
+    <p class="model-note" data-i18n="settings.tavern.note">关闭后右下角日志不再自动弹出，摸鱼按钮仍可点击</p>
+    <label class="toggle-label" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:8px"><span data-i18n="settings.tavern.hide">完全隐藏酒馆</span><span class="toggle-switch"><input type="checkbox" id="settings-tavern-hide" onchange="App._saveTavernHide()"><span class="toggle-slider"></span></span></label>
+    <label data-i18n="settings.bg">主题背景图</label>
+    <div id="bg-preview" style="display:none;align-items:center;gap:12px;padding:8px;background:var(--color-bg);border-radius:8px;margin-bottom:8px">
+      <img id="bg-thumb" src="" style="width:80px;height:50px;object-fit:cover;border-radius:4px;border:1px solid var(--color-border)">
+      <div>
+        <span id="bg-name" style="font-size:13px;color:var(--color-text-secondary)"></span>
+        <br><span style="font-size:11px;color:var(--color-success)" data-i18n="settings.bg.set">已设置</span>
+      </div>
+    </div>
+    <input type="file" id="settings-bg" accept="image/*" onchange="App.uploadBackground()" style="display:none">
+    <label for="settings-bg" class="btn btn-secondary" style="display:inline-block;width:auto;margin:0;font-size:13px;padding:8px 16px;cursor:pointer" data-i18n="settings.bg.choose">📁 选择图片</label>
+    <p class="model-note" data-i18n="settings.bg.note">建议 1920×1080，图片自动覆盖适配屏幕</p>
+    <button class="btn btn-secondary" style="margin-top:4px" onclick="App.clearBackground()" data-i18n="settings.bg.clear">清除背景图</button>
+    <div class="balance-row">
+      <div>
+        <div class="label" data-i18n="settings.balance">账户余额</div>
+        <div class="amount" id="balance-amount">---</div>
+      </div>
+      <button class="btn" style="width:auto;margin:0 0 0 auto;" onclick="App.queryBalance()" data-i18n="settings.balance.query">查询余额</button>
+    </div>
+    </div>
+
+    <div id="settings-tab-account" style="display:none">
+      <label data-i18n="account.username">用户名</label>
+      <input type="text" id="account-username" disabled style="background:var(--color-bg);color:var(--color-text-secondary)">
+      <label style="margin-top:16px" data-i18n="account.changePassword">修改密码</label>
+      <input type="password" id="settings-oldpw" data-i18n-placeholder="account.oldPassword" placeholder="旧密码" style="margin-bottom:6px">
+      <input type="password" id="settings-newpw" data-i18n-placeholder="account.newPassword" placeholder="新密码" style="margin-bottom:6px">
+      <input type="password" id="settings-newpw2" data-i18n-placeholder="account.confirmPassword" placeholder="确认新密码">
+      <button class="btn btn-secondary" style="margin-top:6px" onclick="App.changePassword()" data-i18n="account.changePassword">修改密码</button>
+      <p class="model-note" id="pw-msg" style="min-height:18px"></p>
+      <label style="margin-top:16px" data-i18n="account.securityQuestion">密保问题</label>
+      <input type="text" id="settings-security-q" data-i18n-placeholder="account.securityQPlaceholder" placeholder="如：我的第一只宠物叫什么？" style="margin-bottom:6px">
+      <input type="text" id="settings-security-a" data-i18n-placeholder="account.securityAnswer" placeholder="密保答案">
+      <button class="btn btn-secondary" style="margin-top:6px" onclick="App.setSecurity()" data-i18n="account.saveSecurity">保存密保</button>
+      <p class="model-note" id="sec-msg" style="min-height:18px"></p>
+      <label style="margin-top:20px;color:var(--color-error)" data-i18n="account.dangerZone">危险操作</label>
+      <button class="btn btn-danger" style="margin-top:6px" onclick="App.deleteAccount()" data-i18n="account.deleteAccount">注销账号</button>
+      <p class="model-note" style="color:var(--color-error)" data-i18n="account.deleteWarning">注销后将永久删除所有数据，不可恢复</p>
+      <button class="btn btn-secondary" style="margin-top:20px" onclick="App.logout()" data-i18n="account.logout">退出登录</button>
+    </div>
+    <!-- 模板库 -->
+    <div id="settings-tab-templates" style="display:none">
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <button class="btn" style="margin:0;font-size:13px;padding:10px 20px" onclick="App._showTemplateForm()" data-i18n="template.new">+ 新建模板</button>
+        <button class="btn btn-outline" style="margin:0;font-size:13px;padding:10px 20px;display:inline-flex;align-items:center;justify-content:center;gap:6px" onclick="App._extractTemplate()"><span class="material-icons" style="font-size:18px;vertical-align:middle">auto_awesome</span><span data-i18n="template.oneClick">一键提炼</span></button>
+      </div>
+      <div id="templates-list" style="max-height:360px;overflow-y:auto"></div>
+      <div id="template-form" style="display:none;margin-top:20px;padding:20px;background:var(--color-bg);border-radius:var(--radius-md);border:1px solid var(--color-border)">
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px" data-i18n="template.name">模板名称</label>
+          <input type="text" id="tf-name" data-i18n-placeholder="template.namePlaceholder" placeholder="如：我的汇报风格" style="width:100%;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px" data-i18n="template.modules">适用模块</label>
+          <div id="tf-modules" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px" data-i18n="template.systemPrompt">系统指令</label>
+          <textarea id="tf-prompt" data-i18n-placeholder="template.systemPromptPlaceholder" placeholder="如：始终以'我们团队'为主语，避免使用'我'..." rows="4" style="width:100%;box-sizing:border-box;font-size:13px;border-radius:var(--radius-sm);border:2px solid var(--color-border);padding:10px;outline:none"></textarea>
+        </div>
+        <div style="display:flex;gap:20px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <div>
+            <label style="font-size:13px;font-weight:600;margin-right:8px" data-i18n="template.outputFormat">输出格式</label>
+            <select id="tf-style"><option value="paragraph" data-i18n="template.format.paragraph">段落式</option><option value="bullet" data-i18n="template.format.bullet">要点式</option><option value="mixed" data-i18n="template.format.mixed">混合式</option></select>
+          </div>
+          <label class="toggle-label" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><span data-i18n="template.setDefault">设为默认</span><span class="toggle-switch"><input type="checkbox" id="tf-default"><span class="toggle-slider"></span></span></label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn" style="margin:0;font-size:13px;padding:12px 24px;width:100%" onclick="App._saveTemplate()" data-i18n="template.saveTemplate">保存模板</button>
+          <button class="btn btn-outline" style="margin:0;font-size:13px;padding:12px 24px;width:100%" onclick="App._previewTemplate()" data-i18n="template.preview">预览效果</button>
+          <button class="btn btn-outline" style="margin:0;font-size:13px;padding:12px 24px;width:100%" onclick="document.getElementById('template-form').style.display='none'" data-i18n="app.cancel">取消</button>
+        </div>
+        <input type="hidden" id="tf-id">
+      </div>
+    </div>
+    <!-- 知识库 -->
+    <div id="settings-tab-kb" style="display:none">
+      <div style="margin-bottom:16px">
+        <input type="text" id="kb-col-name" data-i18n-placeholder="kb.namePlaceholder" placeholder="输入知识库名称，如：项目A资料" style="display:block;width:100%;margin:0 0 8px 0;font-size:14px;padding:10px 14px;border:2px solid var(--color-border);border-radius:var(--radius-sm);outline:none;box-sizing:border-box">
+        <button class="btn" style="margin:0;font-size:13px;padding:10px 18px" onclick="App._createKB()" data-i18n="kb.create">创建知识库</button>
+      </div>
+      <div id="kb-collections" style="max-height:300px;overflow-y:auto"></div>
+      <p style="font-size:11px;color:var(--color-text-muted);margin-top:8px" data-i18n="kb.uploadHint">支持上传 .txt .md .docx .pdf 文件，AI 生成时会自动检索知识库内容作为参考</p>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border)">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px"><span class="material-icons" style="font-size:14px;vertical-align:middle">search</span> <span data-i18n="kb.searchTest">检索测试</span></label>
+        <input type="text" id="kb-search-input" data-i18n-placeholder="kb.searchPlaceholder" placeholder="输入查询词测试检索效果..." style="display:block;width:100%;font-size:13px;padding:8px 10px;margin:0 0 8px 0;border:2px solid var(--color-border);border-radius:var(--radius-sm);outline:none;box-sizing:border-box">
+        <button class="btn" style="margin:0;font-size:12px;padding:8px 18px" onclick="App._testKBSearch()" data-i18n="kb.searchBtn">测试检索</button>
+        <div id="kb-search-result" style="margin-top:10px;font-size:12px;color:var(--color-text-muted)"></div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border)">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px"><span class="material-icons" style="font-size:14px;vertical-align:middle">note_add</span> <span data-i18n="kb.quickPaste">快速粘贴文本</span></label>
+        <select id="kb-paste-collection" style="display:block;width:100%;font-size:13px;padding:8px 10px;margin:0 0 8px 0;border:2px solid var(--color-border);border-radius:var(--radius-sm);outline:none;box-sizing:border-box"><option value="" data-i18n="kb.selectCollection">请先选择知识库…</option></select>
+        <textarea id="kb-text-paste" data-i18n-placeholder="kb.pastePlaceholder" placeholder="直接粘贴一段文本,自动分块入库..." rows="3" style="display:block;width:100%;font-size:13px;padding:8px 10px;margin:0 0 8px 0;border:2px solid var(--color-border);border-radius:var(--radius-sm);outline:none;box-sizing:border-box;resize:vertical"></textarea>
+        <button class="btn" style="margin:0;font-size:12px;padding:8px 18px" onclick="App._saveKBPaste()" data-i18n="kb.saveDoc">保存为文档</button>
+      </div>
+      <input type="file" id="kb-file" accept=".txt,.md,.docx,.pdf,.xlsx,.xls,.pptx,.ppt,.csv,.json,.xml,.log,.py,.js,.html,.sql" multiple onchange="App._uploadKB()" style="display:none">
+      <div id="kb-upload-progress" style="display:none;margin:10px 0;padding:10px 14px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);border-radius:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span id="kb-upload-text" style="font-size:13px;color:var(--color-accent);font-weight:600">上传中…</span>
+          <span class="material-icons" style="font-size:16px;color:var(--color-text-muted);cursor:pointer" onclick="document.getElementById('kb-upload-progress').style.display='none'" title="关闭">close</span>
+        </div>
+        <progress id="kb-upload-bar" value="0" max="100" style="width:100%;height:6px;border:none;border-radius:3px;overflow:hidden;appearance:none;-webkit-appearance:none"></progress>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API Key 解锁弹窗 -->
+<div id="unlock-overlay" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
+  <div id="unlock-dialog" style="background:var(--color-card);color:var(--color-text);border-radius:var(--radius-lg);padding:32px;max-width:400px;width:90vw;text-align:center;transition:transform 0.15s">
+    <span class="material-icons" style="font-size:40px;color:var(--color-accent);margin-bottom:8px">lock</span>
+    <h3 style="margin:0 0 8px;font-size:18px" data-i18n="unlock.title">解锁 API Key</h3>
+    <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px" data-i18n="unlock.hint">你的 API Key 已加密存储，请输入登录密码解锁</p>
+    <input type="password" id="unlock-password" data-i18n-placeholder="unlock.placeholder" placeholder="登录密码" maxlength="64" style="width:100%;box-sizing:border-box;text-align:left;letter-spacing:normal;margin-bottom:8px" autocomplete="current-password" onkeydown="if(event.key==='Enter')App._confirmUnlock()">
+    <p id="unlock-error" style="font-size:12px;color:var(--color-error);min-height:18px;margin:0 0 8px"></p>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;margin:0;font-size:14px" onclick="App._cancelUnlock()" data-i18n="unlock.cancel">取消</button>
+      <button class="btn" style="flex:1;margin:0;font-size:14px" onclick="App._confirmUnlock()" data-i18n="unlock.unlock">解锁</button>
+    </div>
+  </div>
+</div>
+
+<!-- 顶部导航 -->
+<nav id="top-nav" class="hidden">
+  <div class="nav-brand"><span class="material-icons">work</span><span data-i18n="app.title">牛马助手</span></div>
+  <div class="nav-inner">
+    <button class="nav-tab active" data-tab="chat"><span class="material-icons">chat</span><span data-i18n="nav.chat">自由对话</span></button>
+    <button class="nav-tab" data-tab="summarize"><span class="material-icons">summarize</span><span data-i18n="nav.summarize">太长不看</span></button>
+    <button class="nav-tab" data-tab="email"><span class="material-icons">mail</span><span data-i18n="nav.email">已读乱回</span></button>
+    <button class="nav-tab" data-tab="minutes"><span class="material-icons">groups</span><span data-i18n="nav.minutes">人云议云</span></button>
+    <button class="nav-tab" data-tab="polish"><span class="material-icons">edit_note</span><span data-i18n="nav.polish">字斟句酌</span></button>
+    <button class="nav-tab" data-tab="reportese"><span class="material-icons">trending_up</span><span data-i18n="nav.reportese">向上管理</span></button>
+    <button class="nav-tab" data-tab="requirements"><span class="material-icons">psychology</span><span data-i18n="nav.requirements">需求炼金</span></button>
+    <button class="nav-tab" data-tab="prd"><span class="material-icons">draw</span><span data-i18n="nav.prd">产品画饼</span></button>
+    <button class="nav-tab" data-tab="ppt"><span class="material-icons">slideshow</span><span data-i18n="nav.ppt">PPT雕花</span></button>
+    <button class="nav-tab" data-tab="weeklyreport"><span class="material-icons">article</span><span data-i18n="nav.weeklyreport">周报生成</span></button>
+  </div>
+  <div class="nav-spacer-right"></div>
+</nav>
+
+<!-- 右上角按钮 -->
+<button onclick="App.toggleChangelog()" data-i18n-title="changelog.title" title="更新日志" style="position:fixed;top:13px;right:72px;z-index:899;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.7);color:var(--color-text-muted);cursor:pointer;display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:all 0.25s" id="changelog-btn" onmouseenter="this.style.transform='scale(1.08)'" onmouseleave="this.style.transform='scale(1)'"><span class="material-icons" style="font-size:18px">campaign</span></button>
+<button onclick="App.toggleNotifications()" data-i18n-title="changelog.notifications" title="消息通知" style="position:fixed;top:13px;right:24px;z-index:899;width:36px;height:36px;border-radius:50%;border:1px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.7);color:var(--color-text-muted);cursor:pointer;display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:all 0.25s;pointer-events:auto" id="notif-btn" onmouseenter="this.style.transform='scale(1.08)'" onmouseleave="this.style.transform='scale(1)'"><span class="material-icons" style="font-size:18px;pointer-events:none">notifications</span><span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--color-error);color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;min-width:16px;text-align:center;pointer-events:none;animation:pulse 2s infinite">0</span></button>
+
+<!-- 像素酒馆日志 -->
+<div id="tavern-wrapper" style="display:none;position:fixed;right:8px;bottom:120px;z-index:850;user-select:none">
+  <div style="position:relative;line-height:0">
+    <div class="tavern-log" id="tavernLog"></div>
+    <button class="tavern-clear-btn" id="tavernClearBtn" data-i18n-title="tavern.clearLog" onclick="App._tavernClear()">✕</button>
+  </div>
+  <button class="tavern-btn" id="tavernBtn" data-i18n-title="tavern.touchFish">🐟</button>
+</div>
+
+<!-- 主应用 -->
+<div id="app" class="hidden">
+  <!-- 1. 太长不看 -->
+  <section class="tool-section" id="section-summarize">
+    <div class="tool-card">
+      <h2><span class="material-icons">summarize</span><span data-i18n="mod.summarize.title">太长不看</span></h2>
+      <p class="tool-desc" data-i18n="mod.summarize.desc">粘贴长文本，一键提取核心要点</p>
+      <div class="style-row" id="style-row-summarize" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-summarize" onchange="App.setStyle('summarize',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <textarea id="summarize-input" data-i18n-placeholder="mod.summarize.placeholder" placeholder="把那个比老板心思还难懂的长文贴在这里...（限20000字）" maxlength="20000"></textarea>
+      <div class="range-row">
+        <span style="font-size:13px;color:var(--color-text-secondary)" data-i18n="mod.summarize.lengthLabel">摘要长度：</span>
+        <span class="tag selected" data-length="short" onclick="Modules.summarize.setLength('short',this)" data-i18n="mod.summarize.short">短</span>
+        <span class="tag" data-length="medium" onclick="Modules.summarize.setLength('medium',this)" data-i18n="mod.summarize.medium">中</span>
+        <span class="tag" data-length="bullets" onclick="Modules.summarize.setLength('bullets',this)" data-i18n="mod.summarize.bullets">要点式</span>
+      </div>
+      <button class="btn" onclick="Modules.summarize.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.startSummary">开始摘要</span></button>
+      <button class="btn btn-outline stop-btn" id="summarize-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box" id="summarize-result"></div>
+      <button class="btn btn-outline" style="display:none" id="summarize-copy" onclick="App.copyResult('summarize-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="summarize-export" onclick="App.exportDocx(Modules.summarize._lastRaw || document.getElementById('summarize-result').textContent,'太长不看')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('summarize','summarize-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="summarize-result-todo" onclick="App._extractTodosFromResult('summarize-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 2. 已读乱回 -->
+  <section class="tool-section" id="section-email">
+    <div class="tool-card">
+      <h2><span class="material-icons">mail</span><span data-i18n="mod.email.title">已读乱回</span></h2>
+      <p class="tool-desc" data-i18n="mod.email.desc">粘贴对方来信，生成一封"看上去认真读了但其实没读"的回信</p>
+      <div class="style-row" id="style-row-email" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-email" onchange="App.setStyle('email',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <!-- 风格和模式 -->
+      <div class="form-row">
+        <select id="email-tone" style="flex:0.5">
+          <option value="formal" data-i18n="mod.email.tone.formal">正式商务</option>
+          <option value="friendly" data-i18n="mod.email.tone.friendly">友好亲切</option>
+          <option value="professional" data-i18n="mod.email.tone.professional">专业详实</option>
+        </select>
+        <select id="email-mode" onchange="Modules.email.toggleReply()" style="flex:0.5">
+          <option value="write" data-i18n="mod.email.mode.write">写信模式</option>
+          <option value="reply" data-i18n="mod.email.mode.reply">回复模式</option>
+        </select>
+      </div>
+      <!-- 回信模式：原始邮件在最上面 -->
+      <textarea id="email-original" data-i18n-placeholder="mod.email.originalPlaceholder" placeholder="原始邮件内容（粘贴对方来信）" rows="4" style="margin-bottom:6px;min-height:80px;display:none"></textarea>
+      <!-- 收件人和主题（非必填） -->
+      <div class="form-row">
+        <input type="text" id="email-recipient" data-i18n-placeholder="mod.email.recipient" placeholder="收件人（选填，如：张总）">
+        <input type="text" id="email-subject" data-i18n-placeholder="mod.email.subject" placeholder="主题关键词（选填，如：项目进展汇报）">
+      </div>
+      <textarea id="email-points" data-i18n-placeholder="mod.email.points" placeholder="核心要点，用逗号分隔（如：进度正常,需要延期,请求支持）" rows="3" style="margin-bottom:6px;min-height:60px"></textarea>
+      <button class="btn" onclick="Modules.email.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.generateEmail">生成邮件</span></button>
+      <button class="btn btn-outline stop-btn" id="email-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box" id="email-result"></div>
+      <button class="btn btn-outline" style="display:none" id="email-copy" onclick="App.copyText('email-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="email-export" onclick="App.exportDocx(Modules.email._lastRaw || document.getElementById('email-result').textContent,'已读乱回')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('email','email-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="email-result-todo" onclick="App._extractTodosFromResult('email-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 3. 人云议云 -->
+  <section class="tool-section" id="section-minutes">
+    <div class="tool-card">
+      <h2><span class="material-icons">groups</span><span data-i18n="mod.minutes.title">人云议云</span></h2>
+      <p class="tool-desc" data-i18n="mod.minutes.desc">录音自动转文字，多段录音可分别预览下载</p>
+      <div class="style-row" id="style-row-minutes" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-minutes" onchange="App.setStyle('minutes',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <!-- 录音控制栏 -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn" id="mic-btn" onclick="Modules.minutes.toggleMic()" style="margin:0"><span class="material-icons" style="font-size:16px;vertical-align:middle">mic</span> <span data-i18n="mod.minutes.startRec">开始录音</span></button>
+        <span id="mic-timer" style="font-size:14px;font-weight:600;color:var(--color-text-muted);display:none">00:00</span>
+        <button class="btn" id="mode-btn" onclick="Modules.minutes.toggleMode()" style="margin:0;font-size:12px;padding:6px 10px;background:var(--color-accent);color:#fff" title="实时/完成模式切换"><span class="material-icons" style="font-size:14px;vertical-align:middle">inventory_2</span> <span data-i18n="mod.minutes.modeBtnComplete">完成模式</span></button>
+        <button class="tag" id="model-btn" onclick="Modules.minutes.toggleModel()" style="cursor:pointer" data-i18n-title="mod.minutes.modelTitle"><span class="material-icons" style="font-size:14px;vertical-align:middle">memory</span> <span data-i18n="mod.minutes.modelQuality">高质</span></button>
+        <button class="tag" id="lang-btn" onclick="Modules.minutes.toggleLang()" style="cursor:pointer">🇨🇳 中文</button>
+        <input type="file" id="minutes-audio" accept="audio/*" onchange="Modules.minutes.uploadAudio()" style="display:none">
+        <button class="tag" style="cursor:pointer" onclick="document.getElementById('minutes-audio').click()"><span class="material-icons" style="font-size:14px;vertical-align:middle">folder</span> <span data-i18n="app.upload">上传</span></button>
+        <span id="mic-status" style="font-size:11px;color:var(--color-text-muted)"></span>
+      </div>
+      <!-- 录音段列表 -->
+      <div id="segments-list" style="margin:8px 0;max-height:400px;overflow-y:auto">
+        <span style="color:var(--color-text-muted);font-size:13px" data-i18n="mod.minutes.modeCompleteHint">完成模式：录完后一次性转写，质量更好</span>
+      </div>
+      <button class="btn" id="smooth-btn" onclick="Modules.minutes._smoothText()" style="margin:4px 0;font-size:12px;padding:6px 12px;display:none">✨ AI 顺滑纠错</button>
+      <!-- 文本合并区 -->
+      <textarea id="minutes-input" data-i18n-placeholder="mod.minutes.placeholder" placeholder="转录文字汇总，可编辑后生成纪要..." maxlength="20000" style="min-height:80px"></textarea>
+      <div style="margin:8px 0;display:flex;align-items:center;gap:8px">
+        <span style="display:none">
+        <input type="checkbox" id="minutes-speakers">
+        <label for="minutes-speakers" style="font-size:14px;color:var(--color-text-secondary);cursor:pointer">标注说话人</label>
+        </span>
+      </div>
+      <button class="btn" onclick="Modules.minutes.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.startMinutes">生成纪要</span></button>
+      <button class="btn btn-outline stop-btn" id="minutes-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box markdown" id="minutes-result"></div>
+      <button class="btn btn-outline" style="display:none" id="minutes-copy" onclick="App.copyText('minutes-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="minutes-export" onclick="App.exportDocx(Modules.minutes._lastRaw || document.getElementById('minutes-result').textContent,'人云议云')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('minutes','minutes-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="minutes-result-todo" onclick="App._extractTodosFromResult('minutes-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 4. 字斟句酌 -->
+  <section class="tool-section" id="section-polish">
+    <div class="tool-card">
+      <h2><span class="material-icons">edit_note</span><span data-i18n="mod.polish.title">字斟句酌</span></h2>
+      <p class="tool-desc" data-i18n="mod.polish.desc">把口语化报告润色成严谨精准的专业文本，每个字都有用</p>
+      <div class="style-row" id="style-row-polish" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-polish" onchange="App.setStyle('polish',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <div style="margin-bottom:8px">
+        <span class="tag selected" data-style="business" onclick="Modules.polish.setStyle('business',this)" data-i18n="mod.polish.business">商务简洁</span>
+        <span class="tag" data-style="academic" onclick="Modules.polish.setStyle('academic',this)" data-i18n="mod.polish.academic">学术严谨</span>
+      </div>
+      <div class="compare-view">
+        <div class="panel">
+          <h4><span class="material-icons">edit</span> <span data-i18n="mod.polish.original">原始草稿</span></h4>
+          <textarea id="polish-input" data-i18n-placeholder="mod.polish.originalPlaceholder" placeholder="把报告草稿贴在这里…" maxlength="20000" style="min-height:200px;border:none;background:transparent;width:100%;resize:vertical;font-family:inherit;font-size:14px;line-height:1.7;outline:none;padding:0"></textarea>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span style="font-size:10px;color:var(--color-text-muted)" data-i18n="mod.polish.fileSupport">支持 .txt .md .docx</span>
+            <input type="file" id="polish-file" accept=".txt,.md,.text,.docx,.doc,.pdf,.xlsx,.xls,.csv" onchange="Modules.polish.uploadFile()" style="display:none">
+            <button class="tag" style="cursor:pointer;padding:2px 8px;font-size:11px;font-weight:400;margin:0" onclick="document.getElementById('polish-file').click()"><span class="material-icons" style="font-size:14px;vertical-align:middle">attach_file</span><span data-i18n="app.upload">上传</span></button>
+          </div>
+        </div>
+        <div class="panel" id="polish-output">
+          <h4><span class="material-icons">auto_awesome</span> <span data-i18n="mod.polish.polished">润色后</span></h4>
+          <div id="polish-output-text" style="color:var(--color-text-muted);font-size:14px;padding:0;min-height:200px" data-i18n="mod.polish.waitResult">点击下方按钮查看润色结果</div>
+        </div>
+      </div>
+      <button class="btn" onclick="Modules.polish.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.startPolish">开始润色</span></button>
+      <button class="btn btn-outline stop-btn" id="polish-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <button class="btn btn-outline" style="display:none" id="polish-copy" onclick="App.copyText('polish-output-text')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="polish-export" onclick="App.exportDocx(Modules.polish._lastRaw || document.getElementById('polish-output-text').textContent,'字斟句酌')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('polish','polish-output-text')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="polish-output-text-todo" onclick="App._extractTodosFromResult('polish-output-text')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 5. 向上管理 -->
+  <section class="tool-section" id="section-reportese">
+    <div class="tool-card">
+      <h2><span class="material-icons">trending_up</span><span data-i18n="mod.reportese.title">向上管理</span></h2>
+      <p class="tool-desc" data-i18n="mod.reportese.desc">把吐槽翻译成领导爱听的 "职场高情商" 语言</p>
+      <div class="style-row" id="style-row-reportese" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-reportese" onchange="App.setStyle('reportese',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <textarea id="reportese-input" data-i18n-placeholder="mod.reportese.placeholder" placeholder="在这里尽情吐槽你的工作...比如：「项目根本做不完，天天开会啥活没干。」" maxlength="20000"></textarea>
+      <div style="margin:12px 0">
+        <span class="tag selected" data-rstyle="result-oriented" onclick="Modules.reportese.setStyle('result-oriented',this)" data-i18n="mod.reportese.resultOriented">结果导向型</span>
+        <span class="tag" data-rstyle="risk-averse" onclick="Modules.reportese.setStyle('risk-averse',this)" data-i18n="mod.reportese.riskAverse">风险规避型</span>
+        <span class="tag" data-rstyle="innovation-highlight" onclick="Modules.reportese.setStyle('innovation-highlight',this)" data-i18n="mod.reportese.innovationHighlight">创新亮点型</span>
+      </div>
+      <button class="btn" onclick="Modules.reportese.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.startTranslate">开始翻译</span></button>
+      <button class="btn btn-outline stop-btn" id="reportese-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box" id="reportese-result"></div>
+      <button class="btn btn-outline" style="display:none" id="reportese-copy" onclick="App.copyText('reportese-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="reportese-export" onclick="App.exportDocx(Modules.reportese._lastRaw || document.getElementById('reportese-result').textContent,'向上管理')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('reportese','reportese-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="reportese-result-todo" onclick="App._extractTodosFromResult('reportese-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 6. 需求炼金 -->
+  <section class="tool-section" id="section-requirements">
+    <div class="tool-card">
+      <h2><span class="material-icons">psychology</span><span data-i18n="mod.requirements.title">需求炼金</span></h2>
+      <p class="tool-desc" data-i18n="mod.requirements.desc">把零散需求、用户反馈、会议记录整理为结构化需求文档</p>
+      <div class="style-row" id="style-row-requirements" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-requirements" onchange="App.setStyle('requirements',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <textarea id="requirements-input" data-i18n-placeholder="mod.requirements.placeholder" placeholder="把零散的需求描述、用户反馈、会议记录贴在这里...（限20000字）" maxlength="20000"></textarea>
+      <div style="margin:12px 0">
+        <span class="tag selected" data-rqstyle="spec" onclick="Modules.requirements.setStyle('spec',this)" data-i18n="mod.requirements.spec">传统需求规格</span>
+        <span class="tag" data-rqstyle="user_story" onclick="Modules.requirements.setStyle('user_story',this)" data-i18n="mod.requirements.userStory">敏捷用户故事</span>
+      </div>
+      <button class="btn" onclick="Modules.requirements.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.startSorting">开始梳理</span></button>
+      <button class="btn btn-outline stop-btn" id="requirements-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box markdown" id="requirements-result"></div>
+      <button class="btn btn-outline" style="display:none" id="requirements-copy" onclick="App.copyText('requirements-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="requirements-export" onclick="App.exportDocx(Modules.requirements._lastRaw || document.getElementById('requirements-result').textContent,'需求炼金')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('requirements','requirements-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="requirements-result-todo" onclick="App._extractTodosFromResult('requirements-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 7. 产品画饼 -->
+  <section class="tool-section" id="section-prd">
+    <div class="tool-card">
+      <h2><span class="material-icons">draw</span><span data-i18n="mod.prd.title">产品画饼</span></h2>
+      <p class="tool-desc" data-i18n="mod.prd.desc">把你的产品想法变成专业 PRD，还能生成前端 Demo</p>
+      <div class="style-row" id="style-row-prd" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-prd" onchange="App.setStyle('prd',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <textarea id="prd-input" data-i18n-placeholder="mod.prd.placeholder" placeholder="描述你的产品想法：目标用户是谁？解决什么问题？核心功能是什么？" maxlength="20000"></textarea>
+      <div style="margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:12px">
+        <span class="tag selected" data-prdstyle="full" onclick="Modules.prd.setStyle('full',this)" data-i18n="mod.prd.full">完整 PRD</span>
+        <span class="tag" data-prdstyle="lean" onclick="Modules.prd.setStyle('lean',this)" data-i18n="mod.prd.lean">精益一页纸</span>
+        <label style="font-size:14px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px;margin-left:8px">
+          <input type="checkbox" id="prd-demo"> <span data-i18n="mod.prd.demo">生成前端 Demo</span>
+        </label>
+      </div>
+      <button class="btn" onclick="Modules.prd.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.generatePRD">生成 PRD</span></button>
+      <button class="btn btn-outline stop-btn" id="prd-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box markdown" id="prd-result" style="display:none"></div>
+      <div class="result-box" id="prd-demo-box" style="display:none;background:var(--color-bg);padding:6px">
+        <div style="display:flex;align-items:center;margin-bottom:4px;gap:4px;justify-content:space-between">
+          <div style="display:flex;gap:2px">
+            <button class="demo-tab active" data-demotab="code" onclick="Modules.prd._switchDemoTab('code')" style="padding:4px 12px;font-size:13px;border:1px solid var(--color-border);background:var(--color-card);color:var(--color-text);border-radius:6px 0 0 6px;cursor:pointer">📝 代码</button>
+            <button class="demo-tab" data-demotab="run" onclick="Modules.prd._switchDemoTab('run')" style="padding:4px 12px;font-size:13px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--color-text-muted);border-radius:0 6px 6px 0;cursor:pointer;border-left:none">👁 运行</button>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn" style="margin:0;padding:4px 12px;font-size:13px" onclick="Modules.prd.openDemo()" data-i18n="app.newWindow">新窗口预览</button>
+            <button class="btn btn-outline" style="margin:0;padding:4px 12px;font-size:13px" onclick="Modules.prd.downloadDemo()" data-i18n="app.downloadHTML">下载 HTML</button>
+          </div>
+        </div>
+        <div id="prd-demo-code" class="demo-panel">
+          <textarea id="prd-demo-editor" readonly spellcheck="false" style="width:100%;height:350px;border:1px solid var(--color-border);border-radius:8px;background:#1e1e1e;color:#d4d4d4;font-family:'Consolas','Courier New',monospace;font-size:13px;padding:10px;resize:vertical;white-space:pre;overflow:auto;outline:none" placeholder="Demo 代码将在这里流式生成…"></textarea>
+        </div>
+        <div id="prd-demo-run" class="demo-panel" style="display:none">
+          <iframe id="prd-demo-frame" style="width:100%;height:400px;border:1px solid var(--color-border);border-radius:8px;background:#fff"></iframe>
+          <div id="prd-demo-status" style="font-size:11px;color:var(--color-text-muted);text-align:center;margin-top:2px"></div>
+        </div>
+      </div>
+      <button class="btn btn-outline" style="display:none" id="prd-copy" onclick="App.copyText('prd-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="prd-export" onclick="App.exportDocx(Modules.prd._lastRaw || document.getElementById('prd-result').textContent,'产品画饼')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('prd','prd-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="prd-result-todo" onclick="App._extractTodosFromResult('prd-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 8. PPT雕花 -->
+  <section class="tool-section" id="section-ppt">
+    <div class="tool-card">
+      <h2><span class="material-icons">slideshow</span><span data-i18n="mod.ppt.title">PPT雕花</span></h2>
+      <p class="tool-desc" data-i18n="mod.ppt.desc">输入主题和要点，AI 帮你生成逐页PPT大纲</p>
+      <div class="style-row" id="style-row-ppt-outline" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-ppt-outline" onchange="App.setStyle('ppt-outline',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+      <input type="text" id="ppt-topic" data-i18n-placeholder="mod.ppt.topic" placeholder="PPT主题（如：Q3季度工作汇报）" style="margin-bottom:8px">
+      <textarea id="ppt-points" data-i18n-placeholder="mod.ppt.points" placeholder="要点描述（如：完成了XX项目、下季度的三个重点方向）" maxlength="20000" style="min-height:120px"></textarea>
+      <div style="margin:8px 0">
+        <span class="tag selected" data-pptstyle="outline" onclick="Modules.ppt.setStyle('outline',this)" data-i18n="mod.ppt.outline">仅大纲</span>
+        <span class="tag" data-pptstyle="notes" onclick="Modules.ppt.setStyle('notes',this)" data-i18n="mod.ppt.notes">含备注</span>
+      </div>
+      <button class="btn" onclick="Modules.ppt.submit()"><span class="material-icons">auto_awesome</span><span data-i18n="app.generateOutline">生成大纲</span></button>
+      <button class="btn btn-outline stop-btn" id="ppt-stop" onclick="App.stopGeneration()" style="display:none"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box markdown" id="ppt-result"></div>
+      <button class="btn btn-outline" style="display:none" id="ppt-copy" onclick="App.copyText('ppt-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="ppt-export" onclick="App.exportDocx(Modules.ppt._lastRaw || document.getElementById('ppt-result').textContent,'PPT大纲')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline" style="display:none" id="ppt-pptx" onclick="Modules.ppt._exportPptx()"><span class="material-icons">slideshow</span><span data-i18n="app.exportPPTX">导出PPTX</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('ppt-outline','ppt-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+    </div>
+  </section>
+
+  <!-- 9. 周报生成 -->
+  <section class="tool-section" id="section-weeklyreport">
+    <div class="tool-card">
+      <h2><span class="material-icons">article</span><span data-i18n="mod.weeklyreport.title">周报生成</span></h2>
+      <p class="tool-desc" data-i18n="mod.weeklyreport.desc">四种模板 × 两种风格，快速生成专业周报</p>
+      <div class="style-row" id="style-row-weeklyreport" style="display:none;margin-bottom:8px;font-size:13px"><span style="color:var(--color-text-muted)"><span class="material-icons" style="font-size:14px;vertical-align:middle">palette</span> <span data-i18n="app.styleLabel">风格：</span></span><select id="style-select-weeklyreport" onchange="App.setStyle('weeklyreport',this.value)" style="font-size:12px;padding:2px 6px;max-width:200px"><option value="">默认</option></select></div>
+
+      <!-- 报告类型选择 -->
+      <div id="wr-type-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="tag selected" data-wrtype="research" onclick="Modules.weeklyreport.setType('research',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">school</span> <span data-i18n="mod.weeklyreport.type.research">科研周报</span></span>
+        <span class="tag" data-wrtype="project" onclick="Modules.weeklyreport.setType('project',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">work</span> <span data-i18n="mod.weeklyreport.type.project">项目周报</span></span>
+        <span class="tag" data-wrtype="techsurvey" onclick="Modules.weeklyreport.setType('techsurvey',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">biotech</span> <span data-i18n="mod.weeklyreport.type.techsurvey">技术调研</span></span>
+        <span class="tag" data-wrtype="ops" onclick="Modules.weeklyreport.setType('ops',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">dns</span> <span data-i18n="mod.weeklyreport.type.ops">运维周报</span></span>
+      </div>
+
+      <!-- 动态表单：单输入框，粘贴原始笔记 -->
+      <textarea id="wr-raw-notes" data-i18n-placeholder="mod.weeklyreport.placeholder.research" placeholder="在这里粘贴你的科研笔记…&#10;&#10;比如：这周精读了CVPR24的EfficientViT，多尺度特征融合那块可以用。实验修复了数据加载bug，CIFAR-100上跑通baseline。写了方法论初稿。问题是稀疏特征收敛太慢，打算试试LayerNorm。下周做消融实验和分析章节。" rows="6" style="margin-bottom:6px;min-height:140px"></textarea>
+
+      <!-- 风格与语言选择 -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+        <span style="font-size:13px;color:var(--color-text-secondary)" data-i18n="mod.weeklyreport.styleLabel">风格：</span>
+        <span class="tag selected" data-wrstyle="structured" onclick="Modules.weeklyreport.setStyle('structured',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">list_alt</span> <span data-i18n="mod.weeklyreport.style.structured">结构化</span></span>
+        <span class="tag" data-wrstyle="narrative" onclick="Modules.weeklyreport.setStyle('narrative',this)"><span class="material-icons" style="font-size:14px;vertical-align:middle">edit_note</span> <span data-i18n="mod.weeklyreport.style.narrative">叙述体</span></span>
+        <span style="margin-left:12px;font-size:13px;color:var(--color-text-secondary)" data-i18n="mod.weeklyreport.langLabel">语言：</span>
+        <span class="tag selected" data-wrlang="zh" onclick="Modules.weeklyreport.setLang('zh',this)" data-i18n="mod.weeklyreport.lang.zh">🇨🇳 中文</span>
+        <span class="tag" data-wrlang="en" onclick="Modules.weeklyreport.setLang('en',this)" data-i18n="mod.weeklyreport.lang.en">🇬🇧 English</span>
+      </div>
+
+      <button class="btn" onclick="Modules.weeklyreport.submit()" style="margin-top:10px"><span class="material-icons">auto_awesome</span><span data-i18n="mod.weeklyreport.generate">生成周报</span></button>
+      <button class="btn btn-outline stop-btn" id="weeklyreport-stop" onclick="App.stopGeneration()" style="display:none;margin-top:10px"><span class="material-icons">stop</span> <span data-i18n="app.stop">中止</span></button>
+      <div class="result-box markdown" id="weeklyreport-result"></div>
+      <button class="btn btn-outline" style="display:none" id="weeklyreport-copy" onclick="App.copyText('weeklyreport-result')"><span class="material-icons">content_copy</span><span data-i18n="app.copy">复制</span></button>
+      <button class="btn btn-outline" style="display:none" id="weeklyreport-export" onclick="App.exportDocx(Modules.weeklyreport._lastRaw || document.getElementById('weeklyreport-result').textContent,'周报')"><span class="material-icons">file_download</span><span data-i18n="app.exportWord">导出Word</span></button>
+      <button class="btn btn-outline extract-btn" style="display:none" onclick="App._extractFromResult('weekly-report','weeklyreport-result')"><span class="material-icons">auto_awesome</span><span data-i18n="app.extractTemplate">提炼为模板</span></button>
+      <button class="btn btn-outline" style="display:none" id="weeklyreport-result-todo" onclick="App._extractTodosFromResult('weeklyreport-result')"><span class="material-icons">checklist</span><span data-i18n="app.extractTodos">提取待办</span></button>
+    </div>
+  </section>
+
+  <!-- 10. 自由对话 -->
+  <section class="tool-section active" id="section-chat">
+    <div id="chat-layout">
+      <!-- 侧边栏 -->
+      <div id="chat-sidebar">
+        <div id="chat-sidebar-header">
+          <input type="text" id="chat-search-input" data-i18n-placeholder="chat.searchPlaceholder" placeholder="搜索对话… (Enter 全文搜索)" oninput="ChatApp.filterConversations()" onkeydown="if(event.key==='Enter'){ChatApp.openSearch();}" style="width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:8px;font-size:13px;outline:none;margin-bottom:8px;box-sizing:border-box">
+          <button id="chat-new-btn" onclick="ChatApp.newConversation()"><span class="material-icons">add</span><span data-i18n="chat.new">新对话</span></button>
+        </div>
+        <div id="chat-conv-list"></div>
+      </div>
+      <!-- 主聊天区 -->
+      <div id="chat-main">
+        <!-- 移动端侧栏切换 -->
+        <button id="chat-sidebar-toggle" class="material-icons" onclick="ChatApp.toggleSidebar()" data-i18n-title="chat.sidebar" title="对话列表">menu</button>
+        <div id="chat-sidebar-backdrop" onclick="ChatApp.toggleSidebar()"></div>
+        <!-- 消息列表 -->
+        <div id="chat-messages">
+          <div id="chat-empty-hint">
+            <div class="empty-icon"><span class="material-icons">chat</span></div>
+            <h3 data-i18n="chat.welcomeTitle">今天想聊点什么？</h3>
+            <p data-i18n="chat.welcomeDesc">我是你的AI助手，可以回答问题、写作、编程、翻译、分析文件等</p>
+            <div class="quick-actions">
+              <span class="quick-action-chip" onclick="ChatApp.quickActionByKey('writeReport')"><span class="material-icons" style="font-size:14px;vertical-align:middle">edit_note</span> <span data-i18n="chat.quickWriteReport">写周报</span></span>
+              <span class="quick-action-chip" onclick="ChatApp.quickActionByKey('summarize')"><span class="material-icons" style="font-size:14px;vertical-align:middle">summarize</span> <span data-i18n="chat.quickSummarize">总结文本</span></span>
+              <span class="quick-action-chip" onclick="ChatApp.quickActionByKey('translate')"><span class="material-icons" style="font-size:14px;vertical-align:middle">translate</span> <span data-i18n="chat.quickTranslate">翻译中文</span></span>
+              <span class="quick-action-chip" onclick="ChatApp.quickActionByKey('polish')"><span class="material-icons" style="font-size:14px;vertical-align:middle">auto_fix_high</span> <span data-i18n="chat.quickPolish">润色文字</span></span>
+            </div>
+          </div>
+        </div>
+        <!-- 输入区 -->
+        <div id="chat-input-area">
+          <div id="chat-attachments-bar" style="display:none"></div>
+          <div id="chat-input-box">
+            <textarea id="chat-input" rows="1" data-i18n-placeholder="chat.placeholder" placeholder="给 DeepSeek 发送消息" oninput="ChatApp.autoResize()" onkeydown="ChatApp.onKeyDown(event)"></textarea>
+            <button id="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" type="button" data-i18n-title="chat.attachFile" title="上传图片或文档"><span class="material-icons" style="font-size:16px">attach_file</span></button>
+            <button id="chat-send-btn" onclick="ChatApp.sendOrStop()" disabled><span class="material-icons">arrow_upward</span></button>
+          </div>
+          <div id="chat-toolbar">
+            <span class="chat-toolbar-hint" data-i18n="chat.enterSend">Enter 发送 · Shift+Enter 换行</span>
+            <span style="flex:1"></span>
+            <label class="kb-toggle" id="chat-kb-toggle" data-i18n-title="chat.kbToggle" title="知识库检索开关">
+              <span class="kb-toggle-label" id="chat-kb-label"><span class="material-icons" style="font-size:14px;vertical-align:middle">menu_book</span> <span data-i18n="chat.kb">知识库</span></span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="chat-kb-checkbox" onchange="ChatApp.toggleKB(this.checked)">
+                <span class="toggle-slider"></span>
+              </span>
+            </label>
+            <label class="deep-think-toggle" data-i18n-title="chat.deepThink" title="深度思考">
+              <span class="deep-think-label"><span class="material-icons" style="font-size:14px;vertical-align:middle">psychology</span> <span data-i18n="chat.deepThink">深度思考</span></span>
+              <span class="toggle-switch">
+                <input type="checkbox" id="chat-deep-think" onchange="ChatApp.toggleDeepThink(this.checked)">
+                <span class="toggle-slider"></span>
+              </span>
+            </label>
+            <span class="chat-toolbar-group">
+              <span class="chat-toolbar-label" data-i18n="chat.model">模型</span>
+              <select id="chat-model-select" onchange="ChatApp.switchModel(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--color-border);border-radius:6px;background:var(--color-card);color:var(--color-text-secondary);max-width:130px">
+                <option value="deepseek-v4-flash">v4-flash</option>
+                <option value="deepseek-v4-pro">v4-pro</option>
+              </select>
+            </span>
+            <span class="chat-toolbar-group">
+              <span class="chat-toolbar-label" data-i18n="chat.style">风格</span>
+              <select id="chat-persona-select" onchange="ChatApp.switchPersona(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--color-border);border-radius:6px;background:var(--color-card);color:var(--color-text-secondary);max-width:110px" data-i18n-title="chat.switchPersona" title="切换对话风格">
+                <option value="standard" data-i18n="chat.persona.standard">标准</option>
+                <option value="genius_girl" data-i18n="chat.persona.genius">活泼</option>
+                <option value="expert" data-i18n="chat.persona.expert">专家</option>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+</div>
+</div>
+
+<!-- 底部状态栏 -->
+<div id="bottom-bar" class="hidden">
+  <div class="stat"><span class="material-icons">data_usage</span><span data-i18n="stats.session">本次：</span><strong id="stat-session">0</strong></div>
+  <div class="stat"><span class="material-icons">bar_chart</span><span data-i18n="stats.total">累计：</span><strong id="stat-total">0</strong></div>
+  <div class="stat"><span class="material-icons">account_balance_wallet</span><span data-i18n="stats.balance">余额：</span><strong id="stat-balance">---</strong></div>
+  <div class="spacer"></div>
+  <button class="history-toggle" onclick="App.toggleSettings()" data-i18n-title="app.settings" title="设置"><span class="material-icons">settings</span><span data-i18n="app.settings">设置</span></button>
+  <button class="history-toggle" onclick="App.toggleDarkMode()" id="dark-toggle" data-i18n-title="app.theme.dark" title="夜间"><span class="material-icons">light_mode</span><span id="dark-label" data-i18n="app.theme.dark">夜间</span></button>
+  <button class="history-toggle" onclick="App.toggleHistory()"><span class="material-icons">history</span><span data-i18n="app.history">历史</span></button>
+  <button class="history-toggle" onclick="App._toggleTodoPanel()" data-i18n-title="app.todos" title="待办" id="todo-toggle"><span class="material-icons">checklist</span><span data-i18n="app.todos">待办</span><span id="todo-badge" style="display:none;background:var(--color-error);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;vertical-align:top">0</span></button>
+  <div class="footer-line">
+    <span style="white-space:nowrap;color:var(--color-warning)"><span class="material-icons" style="font-size:13px;vertical-align:middle">lock</span> <span data-i18n="app.privacyWarning">你的输入和生成结果会保存在服务器数据库中。建议对输入内容关键信息脱敏后再使用，以防信息泄露。</span></span>
+    <span style="white-space:nowrap"><span class="material-icons" style="font-size:13px;vertical-align:middle">warning</span> <span data-i18n="app.generatedByAI">内容由AI生成，请注意甄别</span></span>
+    <span style="margin-left:auto;white-space:nowrap" data-i18n="app.drivenBy">由 DeepSeek 大模型驱动</span>
+    <span style="white-space:nowrap"><span class="material-icons" style="font-size:14px;vertical-align:middle">code</span> <a href="https://github.com/IjichiNijika" target="_blank" style="color:var(--color-text-muted);text-decoration:none">Github IjichiNijika</a> · <a href="https://space.bilibili.com/193061221" target="_blank" style="color:var(--color-text-muted);text-decoration:none">B站 了反是你看我</a> · <a href="https://tieba.baidu.com/home/main?id=tb.1.8907edc6.P90zZKzuXuTeY7qa_Bzy4Q%3Ft%3D1781839254&fr=pb" target="_blank" style="color:var(--color-text-muted);text-decoration:none">贴吧 希望之花Ω</a></span>
+  </div>
+</div>
+
+<!-- 历史面板 -->
+<div id="history-panel">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+    <h4 style="margin:0;flex:1"><span class="material-icons" style="vertical-align:middle">history</span> <span data-i18n="history.title">最近使用记录</span></h4>
+    <input type="text" id="history-search" data-i18n-placeholder="app.search" placeholder="🔍 搜索历史..." style="width:160px;padding:4px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:12px" oninput="App._renderHistory()">
+    <label style="font-size:12px;color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;gap:4px">
+      <input type="checkbox" id="history-select-all" onchange="App._selectAllHistory()"> <span data-i18n="app.selectAll">全选</span>
+    </label>
+    <button class="btn" style="margin:0;padding:4px 12px;font-size:12px;background:var(--color-error)" onclick="App._deleteSelected()" data-i18n="app.deleteSelected">删除选中</button>
+  </div>
+  <div id="history-list"><span style="color:var(--color-text-muted);font-size:13px" data-i18n="app.noRecords">暂无记录，快去使用上面的功能吧~</span></div>
+</div>
+
+<!-- 待办看板 -->
+<div id="todo-panel" style="position:fixed;bottom:72px;left:0;right:0;z-index:799;background:var(--color-card);border-top:1px solid var(--color-border);box-shadow:var(--shadow-lg);max-height:420px;overflow-y:auto;display:none;padding:16px 24px 24px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+    <h4 style="margin:0;flex:1"><span class="material-icons" style="vertical-align:middle">checklist</span> <span data-i18n="todos.title">待办看板</span></h4>
+    <span id="todo-batch-bar" style="display:none;align-items:center;gap:6px">
+      <span id="todo-selected-count" style="font-size:12px;color:var(--color-accent)">已选0项</span>
+      <button onclick="App._batchToggleStatus('done')" style="padding:3px 8px;font-size:11px;background:var(--color-success);color:#fff;border:none;border-radius:4px;cursor:pointer" data-i18n="todos.markDone">标记完成</button>
+      <button onclick="App._batchToggleStatus('pending')" style="padding:3px 8px;font-size:11px;background:var(--color-warning);color:#fff;border:none;border-radius:4px;cursor:pointer" data-i18n="todos.markPending">标记待办</button>
+      <button onclick="App._batchDelete()" style="padding:3px 8px;font-size:11px;background:var(--color-error);color:#fff;border:none;border-radius:4px;cursor:pointer" data-i18n="todos.deleteSelected">删除所选</button>
+    </span>
+    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-muted);cursor:pointer;white-space:nowrap"><input type="checkbox" id="todo-select-all" onchange="App._toggleSelectAll(this.checked)" style="margin:0;cursor:pointer"><span data-i18n="app.selectAll">全选</span></label>
+    <button class="btn" style="margin:0;padding:4px 12px;font-size:12px" onclick="App._refreshTodos()" data-i18n="app.refresh">刷新</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="text" id="todo-new-task" data-i18n-placeholder="todos.inputPlaceholder" placeholder="输入待办，自动识别人物和时间… 如：明天下午3点找张三确认排期" style="flex:1;min-width:0;padding:8px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')App._addTodo()">
+    <button class="btn" style="margin:0;padding:8px 16px;font-size:14px;flex-shrink:0" onclick="App._addTodo()" data-i18n-title="智能解析并添加" title="✨ 添加"><span data-i18n="todos.addBtn">✨ 添加</span></button>
+  </div>
+  <div id="todo-list"><span style="color:var(--color-text-muted);font-size:13px" data-i18n="app.noTodos">暂无待办</span></div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toast-container"></div>
+
+<!-- 加载遮罩 -->
+<div id="loading-overlay">
+  <div class="spinner" id="loading-spinner"></div>
+  <progress id="upload-progress-bar" value="0" max="100"></progress>
+  <div class="loading-text" id="loading-text" data-i18n="loading.default">正在发动牛马之力…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>if(typeof marked==='undefined'){document.write('<script src="marked.min.js"><\/script>');}</script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+<script>if(typeof DOMPurify==='undefined'){console.warn('DOMPurify 未加载，XSS 防护降级');}</script>
+<script src="crypto.js"></script>
+<script src="js/app.js?v=0.8.3"></script>
+
+<!-- 更新日志弹窗 -->
+<div id="changelog-overlay" style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center" onclick="if(event.target===this)App.toggleChangelog()">
+  <div style="background:var(--color-card);border-radius:var(--radius-lg);padding:32px;max-width:560px;width:90vw;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="margin:0;font-size:20px;color:var(--color-primary)"><span class="material-icons" style="vertical-align:middle">campaign</span> <span data-i18n="changelog.title">更新日志</span></h2>
+      <span class="material-icons" style="cursor:pointer;font-size:24px;color:var(--color-text-muted)" onclick="App.toggleChangelog()">close</span>
+    </div>
+    <div id="changelog-content" style="font-size:13px;color:var(--color-text-secondary);line-height:1.8"></div>
+  </div>
+</div>
+
+</body>
+</html>

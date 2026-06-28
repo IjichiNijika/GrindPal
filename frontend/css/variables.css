@@ -1,0 +1,64 @@
+/* ============================================================
+   牛马助手 — 设计系统变量与基础重置
+   ============================================================ */
+
+:root {
+  --color-primary: #1B3A4B;
+  --color-primary-light: #2A5A6F;
+  --color-primary-dark: #0F2532;
+  --color-accent: #3B82F6;
+  --color-accent-hover: #2563EB;
+  --color-bg: #F7F9FC;
+  --color-card: #FFFFFF;
+  --color-text: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-size: 16px;
+  --line-height: 1.6;
+  --transition: 0.3s ease;
+}
+
+/* ============================================================
+   夜间模式 — 设计令牌覆盖
+   ============================================================ */
+[data-theme="dark"] {
+  --color-primary: #4A90D9;
+  --color-primary-light: #5AA0E9;
+  --color-primary-dark: #3A70B9;
+  --color-accent: #60A5FA;
+  --color-accent-hover: #3B82F6;
+  --color-bg: #0F172A;
+  --color-card: #1E293B;
+  --color-text: #E2E8F0;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+  --color-border: #334155;
+  --color-success: #34D399;
+  --color-error: #F87171;
+  --color-warning: #FBBF24;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
+}
+
+/* 全局重置 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+}
